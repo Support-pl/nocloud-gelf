@@ -10,8 +10,8 @@ type GelfServer struct {
 	rep *repository.SqliteRepository
 }
 
-func NewGelfServer(port string, rep *repository.SqliteRepository) *GelfServer {
-	reader, err := gelf.NewReader(port)
+func NewGelfServer(host string, rep *repository.SqliteRepository) *GelfServer {
+	reader, err := gelf.NewReader(host)
 	if err != nil {
 		return nil
 	}
