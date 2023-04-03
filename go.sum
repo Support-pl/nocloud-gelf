@@ -1,0 +1,6 @@
+github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f h1:xMWj7GzE4gCkm8e+661/GJHDXr4h7/jt4kM1Vvr9c5k=
+github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f/go.mod h1:fBaQWrftOD5CrVCUfoYGHs4X4VViTuGOXA8WloCjTY0=
+github.com/slntopp/nocloud v0.0.18-0.20230403134420-aad7fd6f7cda h1:QGnW0Ul1YuIvMkplixMszUjVD5P3Ll6LcQnHMiqbe7Y=
+github.com/slntopp/nocloud v0.0.18-0.20230403134420-aad7fd6f7cda/go.mod h1:YBTtPkY+du/ufYgx1L5kbZtvqlBUBo3Uc27hKSmBlQ8=
+github.com/slntopp/nocloud-proto v0.0.0-20230403122629-a3db356e1d45 h1:JOHenswMm4oTuFHmEkrkJmLAyeBcnJgFpZQ8/QirIrU=
+github.com/slntopp/nocloud-proto v0.0.0-20230403122629-a3db356e1d45/go.mod h1:MXM4Ab6mSbsfWQr6RCxjQofVelYq/5jUVMNDCbAN24Q=
