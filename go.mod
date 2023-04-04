@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f
-	github.com/slntopp/nocloud-proto v0.0.0-20230329150204-dea7c7026c99
+	github.com/slntopp/nocloud-proto v0.0.0-20230404175505-c598eb4bade1
 	github.com/spf13/viper v1.15.0
 	go.uber.org/zap v1.24.0
 )
