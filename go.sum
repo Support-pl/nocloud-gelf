@@ -156,6 +156,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.6.1 h1:/FiVV8dS/e+YqF2JvO3yXRFbBLTIuSDkuC7aBOAvL+k=
+github.com/slntopp/nocloud v0.0.18-0.20230403134420-aad7fd6f7cda h1:QGnW0Ul1YuIvMkplixMszUjVD5P3Ll6LcQnHMiqbe7Y=
+github.com/slntopp/nocloud v0.0.18-0.20230403134420-aad7fd6f7cda/go.mod h1:YBTtPkY+du/ufYgx1L5kbZtvqlBUBo3Uc27hKSmBlQ8=
 github.com/slntopp/nocloud-proto v0.0.0-20230329150204-dea7c7026c99 h1:+PkKjsR2safNhHak5x6LCrqWQ0pSs8a+MZWamhoEjFg=
 github.com/slntopp/nocloud-proto v0.0.0-20230329150204-dea7c7026c99/go.mod h1:MXM4Ab6mSbsfWQr6RCxjQofVelYq/5jUVMNDCbAN24Q=
 github.com/spf13/afero v1.9.4 h1:Sd43wM1IWz/s1aVXdOBkjJvuP8UdyqioeE4AmM0QsBs=

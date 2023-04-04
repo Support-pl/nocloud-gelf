@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/slntopp/nocloud/pkg/nocloud"
 	"github.com/spf13/viper"
 	"github.com/support-pl/nocloud-gelf/pkg/repository"
 	"github.com/support-pl/nocloud-gelf/pkg/server"
@@ -8,7 +9,7 @@ import (
 )
 
 var (
-	log *zap.Logger
+	logger *zap.Logger
 
 	db          string
 	host        string
@@ -17,6 +18,8 @@ var (
 
 func init() {
 	viper.AutomaticEnv()
+
+	logger = nocloud.NewLogger()
 
 	viper.SetDefault("DB", "store.db")
 	viper.SetDefault("HOST", ":12201")
@@ -29,17 +32,17 @@ func init() {
 
 func main() {
 	defer func() {
-		_ = log.Sync()
+		_ = logger.Sync()
 	}()
 
 	rep := repository.NewSqliteRepository(db)
 	if rep == nil {
-		log.Fatal("Failed to access sqlite db")
+		logger.Fatal("Failed to access sqlite db")
 	}
 
-	gelfServer := server.NewGelfServer(host, rep)
+	gelfServer := server.NewGelfServer(logger, host, rep)
 	if gelfServer == nil {
-		log.Fatal("Failed to start server")
+		logger.Fatal("Failed to start server")
 	}
 
 	gelfServer.Run()
