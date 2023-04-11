@@ -21,11 +21,9 @@ var (
 	port string
 	log  *zap.Logger
 
-	arangodbHost string
-	arangodbCred string
-	sqliteHost   string
-	gelfHost     string
-	SIGNING_KEY  []byte
+	sqliteHost  string
+	gelfHost    string
+	SIGNING_KEY []byte
 )
 
 func init() {
@@ -42,8 +40,6 @@ func init() {
 
 	port = viper.GetString("PORT")
 
-	arangodbHost = viper.GetString("DB_HOST")
-	arangodbCred = viper.GetString("DB_CRED")
 	sqliteHost = viper.GetString("SQLITE_HOST")
 	gelfHost = viper.GetString("GELF_HOST")
 	SIGNING_KEY = []byte(viper.GetString("SIGNING_KEY"))
