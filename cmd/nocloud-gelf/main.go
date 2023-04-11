@@ -11,7 +11,6 @@ import (
 	"github.com/slntopp/nocloud/pkg/nocloud/auth"
 	events "github.com/support-pl/nocloud-gelf/pkg"
 
-	"github.com/slntopp/nocloud/pkg/nocloud/connectdb"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -55,10 +54,6 @@ func main() {
 		_ = log.Sync()
 	}()
 
-	log.Info("Setting up ArangoDB Connection")
-	db := connectdb.MakeDBConnection(log, arangodbHost, arangodbCred)
-	log.Info("ArangoDB connection established")
-
 	log.Info("Setting up Sqlite Connection")
 	repository := events.NewSqliteRepository(log, sqliteHost)
 	log.Info("Sqlite connection established")
@@ -83,7 +78,7 @@ func main() {
 
 	go gelfServer.Run()
 
-	server := events.NewEventsLoggingServer(log, repository, db)
+	server := events.NewEventsLoggingServer(log, repository)
 	pb.RegisterEventsLoggingServiceServer(s, server)
 
 	log.Info(fmt.Sprintf("Serving gRPC on 0.0.0.0:%v", port), zap.Skip())
