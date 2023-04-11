@@ -11,6 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -buildvcs=false ./cmd/nocloud-gelf
 
 RUN upx ./nocloud-gelf
+
 RUN apk add -U --no-cache ca-certificates
 
 EXPOSE 8000
