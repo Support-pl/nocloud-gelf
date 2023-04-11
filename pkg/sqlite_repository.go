@@ -103,7 +103,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
 	}
 
-	log.Debug("Query", zap.String("q", selectQuery))
+	log.Info("Query", zap.String("q", selectQuery))
 
 	var events []*epb.Event
 
@@ -145,7 +145,7 @@ func (r *SqliteRepository) GetTrace(ctx context.Context, req *epb.GetTraceReques
 		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
 	}
 
-	log.Debug("Query", zap.String("q", selectQuery))
+	log.Info("Query", zap.String("q", selectQuery))
 
 	var events []*epb.Event
 
