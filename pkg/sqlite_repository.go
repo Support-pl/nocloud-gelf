@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS EVENTS (
     SCOPE TEXT,
     ACTION TEXT,
     RC INTEGER,
-    REQUESTOR TEXT
+    REQUESTOR TEXT,
+    TS INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS SNAPSHOTS (
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS SNAPSHOTS (
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
 	log := r.log.Named("Create Event")
 
-	insertEventQuery := `INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID`
+	insertEventQuery := `INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID`
 
 	tx, err := r.BeginTx(ctx, nil)
 	if err != nil {
@@ -61,7 +62,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 		return err
 	}
 
-	row := tx.QueryRow(insertEventQuery, eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor)
+	row := tx.QueryRow(insertEventQuery, eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp)
 
 	var createdEventId int32
 	err = row.Scan(&createdEventId)
@@ -89,7 +90,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetEvents")
 
-	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = %s AND E.UUID = %s`, req.GetEntity(), req.GetUuid())
+	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = %s AND E.UUID = %s`, req.GetEntity(), req.GetUuid())
 
 	if req.Scope != nil {
 		selectQuery += fmt.Sprintf(`AND E.SCOPE = %s`, req.GetScope())
@@ -122,6 +123,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 			&event.Action,
 			&event.Rc,
 			&event.Requestor,
+			&event.Ts,
 			&event.Snapshot.Id,
 			&event.Snapshot.Diff,
 		)
@@ -134,7 +136,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 func (r *SqliteRepository) GetTrace(ctx context.Context, req *epb.GetTraceRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetTrace")
 
-	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.REQUESTOR=$1`
+	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.REQUESTOR=$1`
 
 	if req.Page != nil && req.Limit != nil {
 		limit, page := req.GetLimit(), req.GetPage()
@@ -163,6 +165,7 @@ func (r *SqliteRepository) GetTrace(ctx context.Context, req *epb.GetTraceReques
 			&event.Action,
 			&event.Rc,
 			&event.Requestor,
+			&event.Ts,
 			&event.Snapshot.Id,
 			&event.Snapshot.Diff,
 		)
