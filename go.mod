@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/slntopp/nocloud v0.0.18-0.20230411093425-3de3c0242092
+	github.com/slntopp/nocloud v0.0.18-0.20230411105521-1843639c30ff
 	github.com/slntopp/nocloud-proto v0.0.0-20230407183047-0a6726e5a56f
 	github.com/spf13/viper v1.15.0
 	go.uber.org/zap v1.24.0
