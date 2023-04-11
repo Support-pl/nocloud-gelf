@@ -90,10 +90,10 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetEvents")
 
-	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = %s AND E.UUID = %s`, req.GetEntity(), req.GetUuid())
+	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = '%s' AND E.UUID = '%s'`, req.GetEntity(), req.GetUuid())
 
 	if req.Scope != nil {
-		selectQuery += fmt.Sprintf(` AND E.SCOPE = %s`, req.GetScope())
+		selectQuery += fmt.Sprintf(` AND E.SCOPE = '%s'`, req.GetScope())
 	}
 
 	if req.Page != nil && req.Limit != nil {
