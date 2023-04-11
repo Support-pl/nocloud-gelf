@@ -12,11 +12,6 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -buildvcs=false ./cmd/nocloud-gelf
 RUN upx ./nocloud-gelf
 RUN apk add -U --no-cache ca-certificates
 
-FROM scratch
-WORKDIR /
-COPY --from=builder  /go/src/github.com/support-pl/nocloud-gelf/nocloud-gelf /nocloud-gelf
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+EXPOSE 8000
 
-EXPOSE 12201
-
-ENTRYPOINT ["/nocloud-gelf"]
+ENTRYPOINT ["/go/src/github.com/support-pl/nocloud-gelf/nocloud-gelf"]
