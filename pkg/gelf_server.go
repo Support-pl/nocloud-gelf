@@ -51,6 +51,7 @@ func (s *GelfServer) Run() {
 
 	for {
 		message, err := s.ReadMessage()
+		log.Info("Accept message", zap.String("Short", message.Short))
 		if err != nil {
 			log.Error("Failed to read message", zap.Error(err))
 			continue
