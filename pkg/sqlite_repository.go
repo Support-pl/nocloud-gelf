@@ -100,7 +100,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		if req.Requestor != nil {
 			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
 		} else {
-			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetRequestor())
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetUuid())
 		}
 	}
 
