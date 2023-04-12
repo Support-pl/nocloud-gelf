@@ -133,44 +133,32 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 	return events, nil
 }
 
-func (r *SqliteRepository) GetTrace(ctx context.Context, req *epb.GetTraceRequest) ([]*epb.Event, error) {
-	log := r.log.Named("GetTrace")
+func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEventsCountRequest) (uint64, error) {
+	log := r.log.Named("GetEventsCount")
 
-	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.REQUESTOR=$1`
+	selectQuery := `SELECT COUNT(*) FROM EVENTS E`
 
-	if req.Page != nil && req.Limit != nil {
-		limit, page := req.GetLimit(), req.GetPage()
-		offset := (page - 1) * limit
+	if req.Requestor != nil {
+		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
+	}
 
-		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+	if req.Uuid != nil {
+		if req.Requestor != nil {
+			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetRequestor())
+		}
 	}
 
 	log.Info("Query", zap.String("q", selectQuery))
 
-	var events []*epb.Event
-
-	rows, err := r.Query(selectQuery, req.GetRequestor())
+	var count uint64
+	row := r.QueryRow(selectQuery)
+	err := row.Scan(&count)
 	if err != nil {
-		log.Error("Error query events", zap.Error(err))
-		return nil, err
+		log.Error("Failed to scan", zap.Error(err))
+		return 0, err
 	}
 
-	for rows.Next() {
-		var event = epb.Event{Snapshot: &epb.Snapshot{}}
-		rows.Scan(
-			&event.Id,
-			&event.Entity,
-			&event.Uuid,
-			&event.Scope,
-			&event.Action,
-			&event.Rc,
-			&event.Requestor,
-			&event.Ts,
-			&event.Snapshot.Id,
-			&event.Snapshot.Diff,
-		)
-		events = append(events, &event)
-	}
-
-	return events, nil
+	return count, nil
 }

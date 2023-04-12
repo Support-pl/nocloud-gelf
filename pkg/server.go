@@ -35,16 +35,18 @@ func (s *EventsLoggingServer) GetEvents(ctx context.Context, req *pb.GetEventsRe
 	return &pb.Events{Events: events}, nil
 }
 
-func (s *EventsLoggingServer) GetTrace(ctx context.Context, req *pb.GetTraceRequest) (*pb.Events, error) {
-	log := s.log.Named("GetTrace")
+func (s *EventsLoggingServer) GetCount(ctx context.Context, req *pb.GetEventsCountRequest) (*pb.GetEventsCountResponse, error) {
+	log := s.log.Named("GetEvents")
 
 	requestor := ctx.Value(nocloud.NoCloudAccount).(string)
 	log.Debug("Request received", zap.Any("request", req), zap.String("requestor", requestor))
 
-	events, err := s.rep.GetTrace(ctx, req)
+	total, err := s.rep.GetEventsCount(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.Events{Events: events}, nil
+	return &pb.GetEventsCountResponse{
+		Total: total,
+	}, nil
 }
