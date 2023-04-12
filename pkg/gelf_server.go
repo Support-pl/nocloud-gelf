@@ -51,7 +51,6 @@ func (s *GelfServer) Run() {
 
 	for {
 		message, err := s.ReadMessage()
-		log.Info("Accept message", zap.String("Short", message.Short))
 		if err != nil {
 			log.Error("Failed to read message", zap.Error(err))
 			continue
@@ -69,6 +68,7 @@ func (s *GelfServer) Run() {
 			continue
 		}
 
+		log.Info("Attempt to create event", zap.Any("Short message", shortMessage))
 		err = s.rep.CreateEvent(context.Background(), &shortMessage)
 		if err != nil {
 			log.Error("Failed to create event", zap.Error(err))
