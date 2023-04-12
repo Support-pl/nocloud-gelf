@@ -7,7 +7,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2
 	github.com/slntopp/nocloud v0.0.18-0.20230411105521-1843639c30ff
-	github.com/slntopp/nocloud-proto v0.0.0-20230407183047-0a6726e5a56f
+	github.com/slntopp/nocloud-proto v0.0.0-20230412122104-921855c07236
 	github.com/spf13/viper v1.15.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75
 	go.uber.org/zap v1.24.0
