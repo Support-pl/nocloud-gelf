@@ -90,10 +90,18 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetEvents")
 
-	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = '%s' AND E.UUID = '%s'`, req.GetEntity(), req.GetUuid())
+	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
 
-	if req.Scope != nil {
-		selectQuery += fmt.Sprintf(` AND E.SCOPE = '%s'`, req.GetScope())
+	if req.Requestor != nil {
+		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
+	}
+
+	if req.Uuid != nil {
+		if req.Requestor != nil {
+			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetRequestor())
+		}
 	}
 
 	if req.Page != nil && req.Limit != nil {
