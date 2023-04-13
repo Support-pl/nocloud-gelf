@@ -9,12 +9,12 @@ import (
 	"net"
 	"net/http"
 
+	events "github.com/Support-pl/nocloud-gelf/pkg"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	pb "github.com/slntopp/nocloud-proto/events_logging"
 	"github.com/slntopp/nocloud/pkg/nocloud"
 	"github.com/slntopp/nocloud/pkg/nocloud/auth"
-	events "github.com/support-pl/nocloud-gelf/pkg"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

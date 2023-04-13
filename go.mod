@@ -1,4 +1,4 @@
-module github.com/support-pl/nocloud-gelf
+module github.com/Support-pl/nocloud-gelf
 
 go 1.20
 
