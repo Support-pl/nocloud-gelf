@@ -154,7 +154,7 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 		if req.Requestor != nil {
 			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
 		} else {
-			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetRequestor())
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetUuid())
 		}
 	}
 
