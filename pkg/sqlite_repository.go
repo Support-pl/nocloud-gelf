@@ -54,7 +54,10 @@ CREATE TABLE IF NOT EXISTS SNAPSHOTS (
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
 	log := r.log.Named("Create Event")
 
-	insertEventQuery := `INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID`
+	insertEventQuery := fmt.Sprintf(`INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS) VALUES ('%s', '%s', '%s', '%s', %d, '%s', %d) RETURNING ID`,
+		eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp)
+
+	log.Info("Query", zap.String("event", insertEventQuery))
 
 	tx, err := r.BeginTx(ctx, nil)
 	if err != nil {
@@ -62,7 +65,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 		return err
 	}
 
-	row := tx.QueryRow(insertEventQuery, eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp)
+	row := tx.QueryRow(insertEventQuery)
 
 	var createdEventId int32
 	err = row.Scan(&createdEventId)
@@ -73,9 +76,11 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 	}
 
 	if eventMessage.Diff != "" {
-		insertSnapshotRow := `INSERT INTO SNAPSHOTS (DIFF, EVENT_ID) VALUES ($1, $2);`
+		insertSnapshotRow := fmt.Sprintf(`INSERT INTO SNAPSHOTS (DIFF, EVENT_ID) VALUES ('%s', %d)`, eventMessage.Diff, createdEventId)
 
-		row = tx.QueryRow(insertSnapshotRow, eventMessage.Diff, createdEventId)
+		log.Info("Query", zap.String("snapshot", insertSnapshotRow))
+
+		row = tx.QueryRow(insertSnapshotRow)
 		err := row.Scan()
 		if err != nil {
 			log.Error("Failed to create event", zap.Error(err))
