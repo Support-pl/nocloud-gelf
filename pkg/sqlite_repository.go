@@ -83,7 +83,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 		row = tx.QueryRow(insertSnapshotRow)
 		err := row.Scan()
 		if err != nil {
-			log.Error("Failed to create event", zap.Error(err))
+			log.Error("Failed to create snapshot", zap.Error(err))
 			tx.Rollback()
 			return err
 		}
