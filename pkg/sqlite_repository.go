@@ -110,11 +110,11 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		}
 	}
 
-	if req.Filter != nil && req.FilterValues != nil {
+	if req.Filter != nil {
 		if req.Requestor != nil || req.Uuid != nil {
-			selectQuery += fmt.Sprintf(` AND E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues().GetValues(), `', '`))
+			selectQuery += fmt.Sprintf(` AND E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues(), `', '`))
 		} else {
-			selectQuery += fmt.Sprintf(` WHERE E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues().GetValues(), `', '`))
+			selectQuery += fmt.Sprintf(` WHERE E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues(), `', '`))
 		}
 	}
 
