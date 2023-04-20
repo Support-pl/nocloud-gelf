@@ -6,6 +6,7 @@ import (
 	"fmt"
 	epb "github.com/slntopp/nocloud-proto/events_logging"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type SqliteRepository struct {
@@ -109,11 +110,24 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		}
 	}
 
+	if req.Filter != nil && req.FilterValues != nil {
+		if req.Requestor != nil || req.Uuid != nil {
+			selectQuery += fmt.Sprintf(` AND E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues().GetValues(), `', '`))
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE E.%s IN ('%s')`, strings.ToUpper(req.GetFilter()), strings.Join(req.GetFilterValues().GetValues(), `', '`))
+		}
+	}
+
 	if req.Page != nil && req.Limit != nil {
 		limit, page := req.GetLimit(), req.GetPage()
 		offset := (page - 1) * limit
 
 		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+	}
+
+	if req.Field != nil && req.Sort != nil {
+		field, sort := strings.ToUpper(req.GetField()), strings.ToUpper(req.GetSort())
+		selectQuery += fmt.Sprintf(` ORDER BY E.%s %s`, field, sort)
 	}
 
 	log.Info("Query", zap.String("q", selectQuery))
