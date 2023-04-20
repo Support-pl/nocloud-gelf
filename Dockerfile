@@ -19,5 +19,6 @@ COPY --from=builder  /go/src/github.com/support-pl/nocloud-gelf/nocloud-gelf /no
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 EXPOSE 8000
+LABEL nocloud.update "true"
 
 ENTRYPOINT ["/nocloud-gelf"]

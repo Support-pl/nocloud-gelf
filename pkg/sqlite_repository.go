@@ -118,16 +118,19 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		}
 	}
 
-	if req.Page != nil && req.Limit != nil {
-		limit, page := req.GetLimit(), req.GetPage()
-		offset := (page - 1) * limit
-
-		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
-	}
-
 	if req.Field != nil && req.Sort != nil {
 		field, sort := strings.ToUpper(req.GetField()), strings.ToUpper(req.GetSort())
 		selectQuery += fmt.Sprintf(` ORDER BY E.%s %s`, field, sort)
+	}
+
+	if req.Page != nil && req.Limit != nil {
+		if req.GetLimit() != -1 {
+
+			limit, page := req.GetLimit(), req.GetPage()
+			offset := (page - 1) * limit
+
+			selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+		}
 	}
 
 	log.Info("Query", zap.String("q", selectQuery))
