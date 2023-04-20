@@ -207,3 +207,54 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 
 	return count, nil
 }
+
+func (r *SqliteRepository) GetUnique(ctx context.Context) (map[string]interface{}, error) {
+	log := r.log.Named("GetUnique")
+
+	selectQuery := `SELECT DISTINCT E.SCOPE FROM EVENTS E`
+
+	row, err := r.Query(selectQuery)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	var scopes []interface{}
+
+	for row.Next() {
+		var scope string
+		err := row.Scan(&scope)
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
+		}
+		scopes = append(scopes, scope)
+	}
+
+	selectQuery = `SELECT DISTINCT E.ACTION FROM EVENTS E`
+
+	row, err = r.Query(selectQuery)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	var actions []interface{}
+
+	for row.Next() {
+		var action string
+		err := row.Scan(&action)
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+
+	var result = map[string]interface{}{
+		"scopes":  scopes,
+		"actions": actions,
+	}
+
+	return result, nil
+}
