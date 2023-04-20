@@ -19,7 +19,7 @@ func NewSqliteRepository(_log *zap.Logger, datasource string) *SqliteRepository 
 
 	log.Info("Creating SqliteRep")
 
-	db, err := sql.Open("sqlite", datasource)
+	db, err := sql.Open("sqlite", fmt.Sprintf("/db/%s", datasource))
 	if err != nil {
 		log.Fatal("Failed to open connection", zap.Error(err))
 		return nil
