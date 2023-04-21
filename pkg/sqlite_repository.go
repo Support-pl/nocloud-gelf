@@ -195,6 +195,29 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 		}
 	}
 
+	if req.Filters != nil && len(req.Filters) != 0 {
+		if req.Requestor != nil || req.Uuid != nil {
+			selectQuery += fmt.Sprintf(` AND `)
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE `)
+		}
+
+		var subQuery []string
+
+		for key, value := range req.GetFilters() {
+			slice := value.GetListValue().AsSlice()
+			var sliceOfStrings = make([]string, len(slice))
+
+			for index, val := range slice {
+				sliceOfStrings[index] = fmt.Sprint(val)
+			}
+
+			subQuery = append(subQuery, fmt.Sprintf(`E.%s IN ('%s')`, strings.ToUpper(key), strings.Join(sliceOfStrings, `', '`)))
+		}
+
+		selectQuery += strings.Join(subQuery, " AND ")
+	}
+
 	log.Info("Query", zap.String("q", selectQuery))
 
 	var count uint64
