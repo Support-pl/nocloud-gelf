@@ -228,13 +228,14 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 
 		selectQuery += strings.Join(subQuery, " AND ")
 
-		if val, ok := req.GetFilters()["operation"]; ok {
-			operationValue := val.GetStringValue()
-			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
-		}
+		operationVal, operationOk := req.GetFilters()["operation"]
+		pathVal, pathOk := req.GetFilters()["path"]
 
-		if val, ok := req.GetFilters()["path"]; ok {
-			operationValue := val.GetStringValue()
+		if operationOk {
+			operationValue := operationVal.GetStringValue()
+			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
+		} else if pathOk {
+			operationValue := pathVal.GetStringValue()
 			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
 		}
 	}
