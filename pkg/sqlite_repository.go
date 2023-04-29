@@ -195,7 +195,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEventsCountRequest) (uint64, error) {
 	log := r.log.Named("GetEventsCount")
 
-	selectQuery := `SELECT COUNT(*) FROM EVENTS E`
+	selectQuery := `SELECT COUNT(*) FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
 
 	if req.Requestor != nil {
 		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
