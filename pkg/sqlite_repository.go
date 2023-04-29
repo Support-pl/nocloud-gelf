@@ -138,10 +138,10 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 
 		if operationOk {
 			operationValue := operation.GetStringValue()
-			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
 		} else if pathOk {
 			pathValue := path.GetStringValue()
-			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
 		}
 
 		selectQuery += strings.Join(subQuery, " AND ")
@@ -237,10 +237,10 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 
 		if operationOk {
 			operationValue := operation.GetStringValue()
-			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
 		} else if pathOk {
 			pathValue := path.GetStringValue()
-			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
 		}
 
 		selectQuery += strings.Join(subQuery, " AND ")
