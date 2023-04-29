@@ -120,7 +120,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		var subQuery []string
 
 		for key, value := range req.GetFilters() {
-			if key == "operation" {
+			if key == "operation" || key == "path" {
 				continue
 			}
 			slice := value.GetListValue().AsSlice()
@@ -133,12 +133,18 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 			subQuery = append(subQuery, fmt.Sprintf(`E.%s IN ('%s')`, strings.ToUpper(key), strings.Join(sliceOfStrings, `', '`)))
 		}
 
-		selectQuery += strings.Join(subQuery, " AND ")
+		operation, operationOk := req.GetFilters()["operation"]
+		path, pathOk := req.GetFilters()["path"]
 
-		if val, ok := req.GetFilters()["operation"]; ok {
-			operationValue := val.GetStringValue()
-			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
+		if operationOk {
+			operationValue := operation.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
+		} else if pathOk {
+			pathValue := path.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
 		}
+
+		selectQuery += strings.Join(subQuery, " AND ")
 	}
 
 	if req.Field != nil && req.Sort != nil {
@@ -226,18 +232,18 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 			subQuery = append(subQuery, fmt.Sprintf(`E.%s IN ('%s')`, strings.ToUpper(key), strings.Join(sliceOfStrings, `', '`)))
 		}
 
-		selectQuery += strings.Join(subQuery, " AND ")
-
-		operationVal, operationOk := req.GetFilters()["operation"]
-		pathVal, pathOk := req.GetFilters()["path"]
+		operation, operationOk := req.GetFilters()["operation"]
+		path, pathOk := req.GetFilters()["path"]
 
 		if operationOk {
-			operationValue := operationVal.GetStringValue()
-			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
+			operationValue := operation.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
 		} else if pathOk {
-			operationValue := pathVal.GetStringValue()
-			selectQuery += fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+operationValue+"%")
+			pathValue := path.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(` AND S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
 		}
+
+		selectQuery += strings.Join(subQuery, " AND ")
 	}
 
 	log.Info("Query", zap.String("q", selectQuery))
