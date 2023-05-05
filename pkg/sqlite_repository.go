@@ -6,6 +6,7 @@ import (
 	"fmt"
 	epb "github.com/slntopp/nocloud-proto/events_logging"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type SqliteRepository struct {
@@ -18,7 +19,7 @@ func NewSqliteRepository(_log *zap.Logger, datasource string) *SqliteRepository 
 
 	log.Info("Creating SqliteRep")
 
-	db, err := sql.Open("sqlite", datasource)
+	db, err := sql.Open("sqlite", fmt.Sprintf("/db/%s", datasource))
 	if err != nil {
 		log.Fatal("Failed to open connection", zap.Error(err))
 		return nil
@@ -32,7 +33,8 @@ CREATE TABLE IF NOT EXISTS EVENTS (
     SCOPE TEXT,
     ACTION TEXT,
     RC INTEGER,
-    REQUESTOR TEXT
+    REQUESTOR TEXT,
+    TS INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS SNAPSHOTS (
@@ -53,7 +55,10 @@ CREATE TABLE IF NOT EXISTS SNAPSHOTS (
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
 	log := r.log.Named("Create Event")
 
-	insertEventQuery := `INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID`
+	insertEventQuery := fmt.Sprintf(`INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS) VALUES ('%s', '%s', '%s', '%s', %d, '%s', %d) RETURNING ID`,
+		eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp)
+
+	log.Info("Query", zap.String("event", insertEventQuery))
 
 	tx, err := r.BeginTx(ctx, nil)
 	if err != nil {
@@ -61,7 +66,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 		return err
 	}
 
-	row := tx.QueryRow(insertEventQuery, eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor)
+	row := tx.QueryRow(insertEventQuery)
 
 	var createdEventId int32
 	err = row.Scan(&createdEventId)
@@ -72,12 +77,14 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 	}
 
 	if eventMessage.Diff != "" {
-		insertSnapshotRow := `INSERT INTO SNAPSHOTS (DIFF, EVENT_ID) VALUES ($1, $2);`
+		insertSnapshotRow := fmt.Sprintf(`INSERT INTO SNAPSHOTS (DIFF, EVENT_ID) VALUES ('%s', %d)`, eventMessage.Diff, createdEventId)
 
-		row = tx.QueryRow(insertSnapshotRow, eventMessage.Diff, createdEventId)
-		err := row.Scan()
+		log.Info("Query", zap.String("snapshot", insertSnapshotRow))
+
+		row = tx.QueryRow(insertSnapshotRow)
+		err := row.Err()
 		if err != nil {
-			log.Error("Failed to create event", zap.Error(err))
+			log.Error("Failed to create snapshot", zap.Error(err))
 			tx.Rollback()
 			return err
 		}
@@ -89,20 +96,73 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetEvents")
 
-	selectQuery := fmt.Sprintf(`SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.ENTITY = %s AND E.UUID = %s`, req.GetEntity(), req.GetUuid())
+	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
 
-	if req.Scope != nil {
-		selectQuery += fmt.Sprintf(`AND E.SCOPE = %s`, req.GetScope())
+	if req.Requestor != nil {
+		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
+	}
+
+	if req.Uuid != nil {
+		if req.Requestor != nil {
+			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetUuid())
+		}
+	}
+
+	if req.Filters != nil && len(req.Filters) != 0 {
+		if req.Requestor != nil || req.Uuid != nil {
+			selectQuery += fmt.Sprintf(` AND `)
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE `)
+		}
+
+		var subQuery []string
+
+		for key, value := range req.GetFilters() {
+			if key == "operation" || key == "path" {
+				continue
+			}
+			slice := value.GetListValue().AsSlice()
+			var sliceOfStrings = make([]string, len(slice))
+
+			for index, val := range slice {
+				sliceOfStrings[index] = fmt.Sprint(val)
+			}
+
+			subQuery = append(subQuery, fmt.Sprintf(`E.%s IN ('%s')`, strings.ToUpper(key), strings.Join(sliceOfStrings, `', '`)))
+		}
+
+		operation, operationOk := req.GetFilters()["operation"]
+		path, pathOk := req.GetFilters()["path"]
+
+		if operationOk {
+			operationValue := operation.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
+		} else if pathOk {
+			pathValue := path.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
+		}
+
+		selectQuery += strings.Join(subQuery, " AND ")
+	}
+
+	if req.Field != nil && req.Sort != nil {
+		field, sort := strings.ToUpper(req.GetField()), strings.ToUpper(req.GetSort())
+		selectQuery += fmt.Sprintf(` ORDER BY E.%s %s`, field, sort)
 	}
 
 	if req.Page != nil && req.Limit != nil {
-		limit, page := req.GetLimit(), req.GetPage()
-		offset := (page - 1) * limit
+		if req.GetLimit() != -1 {
 
-		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+			limit, page := req.GetLimit(), req.GetPage()
+			offset := (page - 1) * limit
+
+			selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+		}
 	}
 
-	log.Debug("Query", zap.String("q", selectQuery))
+	log.Info("Query", zap.String("q", selectQuery))
 
 	var events []*epb.Event
 
@@ -122,6 +182,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 			&event.Action,
 			&event.Rc,
 			&event.Requestor,
+			&event.Ts,
 			&event.Snapshot.Id,
 			&event.Snapshot.Diff,
 		)
@@ -131,43 +192,120 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 	return events, nil
 }
 
-func (r *SqliteRepository) GetTrace(ctx context.Context, req *epb.GetTraceRequest) ([]*epb.Event, error) {
-	log := r.log.Named("GetTrace")
+func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEventsCountRequest) (uint64, error) {
+	log := r.log.Named("GetEventsCount")
 
-	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID WHERE E.REQUESTOR=$1`
+	selectQuery := `SELECT COUNT(*) FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
 
-	if req.Page != nil && req.Limit != nil {
-		limit, page := req.GetLimit(), req.GetPage()
-		offset := (page - 1) * limit
-
-		selectQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, limit, offset)
+	if req.Requestor != nil {
+		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
 	}
 
-	log.Debug("Query", zap.String("q", selectQuery))
+	if req.Uuid != nil {
+		if req.Requestor != nil {
+			selectQuery += fmt.Sprintf(` AND E.UUID = '%s'`, req.GetUuid())
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE E.UUID = '%s'`, req.GetUuid())
+		}
+	}
 
-	var events []*epb.Event
+	if req.Filters != nil && len(req.Filters) != 0 {
+		if req.Requestor != nil || req.Uuid != nil {
+			selectQuery += fmt.Sprintf(` AND `)
+		} else {
+			selectQuery += fmt.Sprintf(` WHERE `)
+		}
 
-	rows, err := r.Query(selectQuery, req.GetRequestor())
+		var subQuery []string
+
+		for key, value := range req.GetFilters() {
+			if key == "operation" || key == "path" {
+				continue
+			}
+			slice := value.GetListValue().AsSlice()
+			var sliceOfStrings = make([]string, len(slice))
+
+			for index, val := range slice {
+				sliceOfStrings[index] = fmt.Sprint(val)
+			}
+
+			subQuery = append(subQuery, fmt.Sprintf(`E.%s IN ('%s')`, strings.ToUpper(key), strings.Join(sliceOfStrings, `', '`)))
+		}
+
+		operation, operationOk := req.GetFilters()["operation"]
+		path, pathOk := req.GetFilters()["path"]
+
+		if operationOk {
+			operationValue := operation.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+operationValue+"%"))
+		} else if pathOk {
+			pathValue := path.GetStringValue()
+			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
+		}
+
+		selectQuery += strings.Join(subQuery, " AND ")
+	}
+
+	log.Info("Query", zap.String("q", selectQuery))
+
+	var count uint64
+	row := r.QueryRow(selectQuery)
+	err := row.Scan(&count)
 	if err != nil {
-		log.Error("Error query events", zap.Error(err))
+		log.Error("Failed to scan", zap.Error(err))
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (r *SqliteRepository) GetUnique(ctx context.Context) (map[string]interface{}, error) {
+	log := r.log.Named("GetUnique")
+
+	selectQuery := `SELECT DISTINCT E.SCOPE FROM EVENTS E`
+
+	row, err := r.Query(selectQuery)
+	if err != nil {
+		log.Error(err.Error())
 		return nil, err
 	}
 
-	for rows.Next() {
-		var event = epb.Event{Snapshot: &epb.Snapshot{}}
-		rows.Scan(
-			&event.Id,
-			&event.Entity,
-			&event.Uuid,
-			&event.Scope,
-			&event.Action,
-			&event.Rc,
-			&event.Requestor,
-			&event.Snapshot.Id,
-			&event.Snapshot.Diff,
-		)
-		events = append(events, &event)
+	var scopes []interface{}
+
+	for row.Next() {
+		var scope string
+		err := row.Scan(&scope)
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
+		}
+		scopes = append(scopes, scope)
 	}
 
-	return events, nil
+	selectQuery = `SELECT DISTINCT E.ACTION FROM EVENTS E`
+
+	row, err = r.Query(selectQuery)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	var actions []interface{}
+
+	for row.Next() {
+		var action string
+		err := row.Scan(&action)
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+
+	var result = map[string]interface{}{
+		"scopes":  scopes,
+		"actions": actions,
+	}
+
+	return result, nil
 }

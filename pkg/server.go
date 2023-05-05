@@ -5,6 +5,7 @@ import (
 	pb "github.com/slntopp/nocloud-proto/events_logging"
 	"github.com/slntopp/nocloud/pkg/nocloud"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type EventsLoggingServer struct {
@@ -35,16 +36,29 @@ func (s *EventsLoggingServer) GetEvents(ctx context.Context, req *pb.GetEventsRe
 	return &pb.Events{Events: events}, nil
 }
 
-func (s *EventsLoggingServer) GetTrace(ctx context.Context, req *pb.GetTraceRequest) (*pb.Events, error) {
-	log := s.log.Named("GetTrace")
+func (s *EventsLoggingServer) GetCount(ctx context.Context, req *pb.GetEventsCountRequest) (*pb.GetEventsCountResponse, error) {
+	log := s.log.Named("GetEvents")
 
 	requestor := ctx.Value(nocloud.NoCloudAccount).(string)
 	log.Debug("Request received", zap.Any("request", req), zap.String("requestor", requestor))
 
-	events, err := s.rep.GetTrace(ctx, req)
+	total, err := s.rep.GetEventsCount(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.Events{Events: events}, nil
+	unique, err := s.rep.GetUnique(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := structpb.NewValue(unique)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetEventsCountResponse{
+		Total:  total,
+		Unique: value,
+	}, nil
 }

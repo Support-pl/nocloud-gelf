@@ -19,13 +19,13 @@ type ShortLogMessage struct {
 	Level string `json:"level"`
 	Msg   string `json:"msg"`
 
-	Entity    string `json:"entity"`
-	Uuid      string `json:"uuid"`
-	Scope     string `json:"scope"`
-	Action    string `json:"action"`
-	Rc        int32  `json:"rc"`
-	Requestor string `json:"requestor"`
-	Ts        int64  `json:"ts"`
+	Entity    string `json:"entity,omitempty"`
+	Uuid      string `json:"uuid,omitempty"`
+	Scope     string `json:"scope,omitempty"`
+	Action    string `json:"action,omitempty"`
+	Rc        int32  `json:"rc,omitempty"`
+	Requestor string `json:"requestor,omitempty"`
+	Timestamp int64  `json:"timestamp,omitempty"`
 
 	Diff string `json:"diff,omitempty"`
 }
@@ -59,6 +59,7 @@ func (s *GelfServer) Run() {
 
 		err = json.Unmarshal([]byte(message.Short), &shortMessage)
 		if err != nil {
+			log.Warn("Wrong message", zap.String("Short message", message.Short))
 			log.Error("Failed to parse short message", zap.Error(err))
 			continue
 		}
@@ -67,6 +68,7 @@ func (s *GelfServer) Run() {
 			continue
 		}
 
+		log.Info("Attempt to create event", zap.Any("Short message", shortMessage))
 		err = s.rep.CreateEvent(context.Background(), &shortMessage)
 		if err != nil {
 			log.Error("Failed to create event", zap.Error(err))

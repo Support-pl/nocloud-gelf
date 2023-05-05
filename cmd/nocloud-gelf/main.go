@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/tmc/grpc-websocket-proxy/wsproxy"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"net/http"
 
+	events "github.com/Support-pl/nocloud-gelf/pkg"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	pb "github.com/slntopp/nocloud-proto/events_logging"
 	"github.com/slntopp/nocloud/pkg/nocloud"
 	"github.com/slntopp/nocloud/pkg/nocloud/auth"
-	events "github.com/support-pl/nocloud-gelf/pkg"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -18,8 +23,8 @@ import (
 )
 
 var (
-	port string
-	log  *zap.Logger
+	port, web_port string
+	log            *zap.Logger
 
 	sqliteHost  string
 	gelfHost    string
@@ -31,6 +36,7 @@ func init() {
 	log = nocloud.NewLogger()
 
 	viper.SetDefault("PORT", "8000")
+	viper.SetDefault("WEB_PORT", "8080")
 
 	viper.SetDefault("GELF_HOST", ":12201")
 	viper.SetDefault("SQLITE_HOST", "sqlite.db")
@@ -39,6 +45,7 @@ func init() {
 	viper.SetDefault("SIGNING_KEY", "seeeecreet")
 
 	port = viper.GetString("PORT")
+	web_port = viper.GetString("WEB_PORT")
 
 	sqliteHost = viper.GetString("SQLITE_HOST")
 	gelfHost = viper.GetString("GELF_HOST")
@@ -65,10 +72,10 @@ func main() {
 			grpc_zap.UnaryServerInterceptor(log),
 			grpc.UnaryServerInterceptor(auth.JWT_AUTH_INTERCEPTOR),
 		)),
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			grpc.StreamServerInterceptor(auth.JWT_STREAM_INTERCEPTOR),
-		)),
 	)
+
+	mux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	gelfServer := events.NewGelfServer(log, gelfHost, repository)
 
@@ -76,6 +83,15 @@ func main() {
 
 	server := events.NewEventsLoggingServer(log, repository)
 	pb.RegisterEventsLoggingServiceServer(s, server)
+	err = pb.RegisterEventsLoggingServiceHandlerFromEndpoint(context.Background(), mux, "localhost:"+port, opts)
+	if err != nil {
+		log.Fatal("Cannot register AnsibleService Gateway handler", zap.Error(err))
+	}
+
+	go func() {
+		log.Info(fmt.Sprintf("Serving HTTP on 0.0.0.0:%v", web_port), zap.Skip())
+		http.ListenAndServe(fmt.Sprintf(":%s", web_port), wsproxy.WebsocketProxy(mux))
+	}()
 
 	log.Info(fmt.Sprintf("Serving gRPC on 0.0.0.0:%v", port), zap.Skip())
 	log.Fatal("Failed to serve gRPC", zap.Error(s.Serve(lis)))
