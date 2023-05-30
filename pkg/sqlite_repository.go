@@ -60,7 +60,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 
 	log.Info("Query", zap.String("event", insertEventQuery))
 
-	tx, err := r.BeginTx(ctx, nil)
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		log.Error("Failed to start transaction", zap.Error(err))
 		return err
@@ -166,7 +166,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 
 	var events []*epb.Event
 
-	rows, err := r.Query(selectQuery)
+	rows, err := r.DB.Query(selectQuery)
 	if err != nil {
 		log.Error("Error query events", zap.Error(err))
 		return nil, err
@@ -249,7 +249,7 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 	log.Info("Query", zap.String("q", selectQuery))
 
 	var count uint64
-	row := r.QueryRow(selectQuery)
+	row := r.DB.QueryRow(selectQuery)
 	err := row.Scan(&count)
 	if err != nil {
 		log.Error("Failed to scan", zap.Error(err))
@@ -264,7 +264,7 @@ func (r *SqliteRepository) GetUnique(ctx context.Context) (map[string]interface{
 
 	selectQuery := `SELECT DISTINCT E.SCOPE FROM EVENTS E`
 
-	row, err := r.Query(selectQuery)
+	row, err := r.DB.Query(selectQuery)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
@@ -284,7 +284,7 @@ func (r *SqliteRepository) GetUnique(ctx context.Context) (map[string]interface{
 
 	selectQuery = `SELECT DISTINCT E.ACTION FROM EVENTS E`
 
-	row, err = r.Query(selectQuery)
+	row, err = r.DB.Query(selectQuery)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
