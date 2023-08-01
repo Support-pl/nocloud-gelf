@@ -59,7 +59,6 @@ func (s *GelfServer) Run() {
 
 		err = json.Unmarshal([]byte(message.Short), &shortMessage)
 		if err != nil {
-			log.Warn("Wrong message", zap.String("Short message", message.Short))
 			log.Error("Failed to parse short message", zap.Error(err))
 			continue
 		}
