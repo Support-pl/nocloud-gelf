@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/tmc/grpc-websocket-proxy/wsproxy"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,6 +30,7 @@ var (
 	sqliteHost  string
 	gelfHost    string
 	SIGNING_KEY []byte
+	redisHost   string
 )
 
 func init() {
@@ -50,6 +52,9 @@ func init() {
 	sqliteHost = viper.GetString("SQLITE_HOST")
 	gelfHost = viper.GetString("GELF_HOST")
 	SIGNING_KEY = []byte(viper.GetString("SIGNING_KEY"))
+
+	viper.SetDefault("REDIS_HOST", "redis:6379")
+	redisHost = viper.GetString("REDIS_HOST")
 }
 
 func main() {
@@ -66,7 +71,13 @@ func main() {
 		log.Fatal("Failed to listen", zap.String("address", port), zap.Error(err))
 	}
 
-	auth.SetContext(log, SIGNING_KEY)
+	log.Info("Connecting redis", zap.String("url", redisHost))
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisHost,
+		DB:   0, // use default DB
+	})
+
+	auth.SetContext(log, rdb, SIGNING_KEY)
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_zap.UnaryServerInterceptor(log),
