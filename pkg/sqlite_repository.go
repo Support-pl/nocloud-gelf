@@ -120,7 +120,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 		var subQuery []string
 
 		for key, value := range req.GetFilters() {
-			if key == "operation" || key == "path" {
+			if key == "operation" || key == "path" || key == "ts" {
 				continue
 			}
 			slice := value.GetListValue().AsSlice()
