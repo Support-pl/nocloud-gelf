@@ -150,12 +150,12 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 
 			if val, ok := tsValue["from"]; ok {
 				from := int64(val.(float64))
-				subQuery = append(subQuery, fmt.Sprintf(`S.TS >= %d`, from))
+				subQuery = append(subQuery, fmt.Sprintf(`E.TS >= %d`, from))
 			}
 
 			if val, ok := tsValue["to"]; ok {
 				to := int64(val.(float64))
-				subQuery = append(subQuery, fmt.Sprintf(`S.TS <= %d`, to))
+				subQuery = append(subQuery, fmt.Sprintf(`E.TS <= %d`, to))
 			}
 		}
 
@@ -264,12 +264,12 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 
 			if val, ok := tsValue["from"]; ok {
 				from := int64(val.(float64))
-				subQuery = append(subQuery, fmt.Sprintf(`S.TS >= %d`, from))
+				subQuery = append(subQuery, fmt.Sprintf(`E.TS >= %d`, from))
 			}
 
 			if val, ok := tsValue["to"]; ok {
 				to := int64(val.(float64))
-				subQuery = append(subQuery, fmt.Sprintf(`S.TS <= %d`, to))
+				subQuery = append(subQuery, fmt.Sprintf(`E.TS <= %d`, to))
 			}
 		}
 
