@@ -144,6 +144,21 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
 		}
 
+		ts, tsOk := req.GetFilters()["ts"]
+		if tsOk {
+			tsValue := ts.GetStructValue().AsMap()
+
+			if val, ok := tsValue["from"]; ok {
+				from := int64(val.(float64))
+				subQuery = append(subQuery, fmt.Sprintf(`S.TS >= %d`, from))
+			}
+
+			if val, ok := tsValue["to"]; ok {
+				to := int64(val.(float64))
+				subQuery = append(subQuery, fmt.Sprintf(`S.TS <= %d`, to))
+			}
+		}
+
 		selectQuery += strings.Join(subQuery, " AND ")
 	}
 
@@ -219,7 +234,7 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 		var subQuery []string
 
 		for key, value := range req.GetFilters() {
-			if key == "operation" || key == "path" {
+			if key == "operation" || key == "path" || key == "ts" {
 				continue
 			}
 			slice := value.GetListValue().AsSlice()
@@ -241,6 +256,21 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 		} else if pathOk {
 			pathValue := path.GetStringValue()
 			subQuery = append(subQuery, fmt.Sprintf(`S.DIFF LIKE '%s'`, "%"+pathValue+"%"))
+		}
+
+		ts, tsOk := req.GetFilters()["ts"]
+		if tsOk {
+			tsValue := ts.GetStructValue().AsMap()
+
+			if val, ok := tsValue["from"]; ok {
+				from := int64(val.(float64))
+				subQuery = append(subQuery, fmt.Sprintf(`S.TS >= %d`, from))
+			}
+
+			if val, ok := tsValue["to"]; ok {
+				to := int64(val.(float64))
+				subQuery = append(subQuery, fmt.Sprintf(`S.TS <= %d`, to))
+			}
 		}
 
 		selectQuery += strings.Join(subQuery, " AND ")
