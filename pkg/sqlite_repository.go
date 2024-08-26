@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS EVENTS (
     ACTION TEXT,
     RC INTEGER,
     REQUESTOR TEXT,
-    TS INTEGER
+    TS INTEGER,
+    PRIORITY INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS SNAPSHOTS (
@@ -55,8 +56,8 @@ CREATE TABLE IF NOT EXISTS SNAPSHOTS (
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
 	log := r.log.Named("Create Event")
 
-	insertEventQuery := fmt.Sprintf(`INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS) VALUES ('%s', '%s', '%s', '%s', %d, '%s', %d) RETURNING ID`,
-		eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp)
+	insertEventQuery := fmt.Sprintf(`INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS, PRIORITY) VALUES ('%s', '%s', '%s', '%s', %d, '%s', %d, %d) RETURNING ID`,
+		eventMessage.Entity, eventMessage.Uuid, eventMessage.Scope, eventMessage.Action, eventMessage.Rc, eventMessage.Requestor, eventMessage.Timestamp, eventMessage.Priority)
 
 	log.Info("Query", zap.String("event", insertEventQuery))
 
@@ -96,7 +97,7 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
 	log := r.log.Named("GetEvents")
 
-	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
+	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF, E.PRIORITY FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
 
 	if req.Requestor != nil {
 		selectQuery += fmt.Sprintf(` WHERE E.REQUESTOR = '%s'`, req.GetRequestor())
@@ -200,6 +201,7 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 			&event.Ts,
 			&event.Snapshot.Id,
 			&event.Snapshot.Diff,
+			&event.Priority,
 		)
 		events = append(events, &event)
 	}

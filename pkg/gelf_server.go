@@ -28,6 +28,8 @@ type ShortLogMessage struct {
 	Timestamp int64  `json:"timestamp,omitempty"`
 
 	Diff string `json:"diff,omitempty"`
+
+	Priority int32 `json:"priority,omitempty"`
 }
 
 func NewGelfServer(_log *zap.Logger, host string, rep *SqliteRepository) *GelfServer {
