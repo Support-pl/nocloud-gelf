@@ -34,8 +34,7 @@ CREATE TABLE IF NOT EXISTS EVENTS (
     ACTION TEXT,
     RC INTEGER,
     REQUESTOR TEXT,
-    TS INTEGER,
-    PRIORITY INTEGER
+    TS INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS SNAPSHOTS (
@@ -47,8 +46,20 @@ CREATE TABLE IF NOT EXISTS SNAPSHOTS (
 );
 `)
 	if err != nil {
-		log.Fatal("Failed to exec query", zap.Error(err))
+		log.Fatal("Failed to exec query to create table", zap.Error(err))
 		return nil
+	}
+
+	_, err = db.Exec(`
+ALTER TABLE EVENTS
+  ADD PRIORITY INTEGER;
+`)
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate") {
+			log.Fatal("Failed to exec query to add 'priority' column to table", zap.Error(err))
+			return nil
+		}
+		log.Warn("Failed to exec query to add 'priority' column to table. Got duplicate error", zap.Error(err))
 	}
 	return &SqliteRepository{DB: db, log: log}
 }
