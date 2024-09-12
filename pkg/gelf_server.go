@@ -61,12 +61,11 @@ func (s *GelfServer) Run() {
 
 		err = json.Unmarshal([]byte(message.Short), &shortMessage)
 		if err != nil {
-			log.Error("Failed to parse short message", zap.Error(err), zap.String("message", message.Short))
+			log.Error("Failed to parse short message", zap.Error(err))
 			continue
 		}
 
 		if shortMessage.Level != nocloudLevelVal {
-			log.Info("Skip message", zap.String("message", message.Short))
 			continue
 		}
 
