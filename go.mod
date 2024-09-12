@@ -2,8 +2,6 @@ module github.com/Support-pl/nocloud-gelf
 
 go 1.21
 
-toolchain go1.22.3
-
 require (
 	github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f
 	github.com/go-redis/redis/v8 v8.11.5
