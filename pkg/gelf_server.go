@@ -66,6 +66,7 @@ func (s *GelfServer) Run() {
 		}
 
 		if shortMessage.Level != nocloudLevelVal {
+			log.Info("Skip message", zap.String("message", message.Short))
 			continue
 		}
 
