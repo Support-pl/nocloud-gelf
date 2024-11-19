@@ -45,8 +45,14 @@ func NewGelfServer(_log *zap.Logger, host string, rep *SqliteRepository) *GelfSe
 	return &GelfServer{Reader: reader, rep: rep, log: log}
 }
 
-func (s *GelfServer) Run() {
+func (s *GelfServer) Run() int {
 	log := s.log.Named("Run")
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("Recovered from panic", zap.Any("error", err))
+		}
+	}()
 
 	log.Info("Start accepting messages")
 	nocloudLevelVal := nocloud.NOCLOUD_LOG_LEVEL.String()

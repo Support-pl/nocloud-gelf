@@ -90,7 +90,13 @@ func main() {
 
 	gelfServer := events.NewGelfServer(log, gelfHost, repository)
 
-	go gelfServer.Run()
+	go func() {
+	start:
+		log.Info(fmt.Sprintf("Serving gelf on 0.0.0.0:%v", gelfHost), zap.Skip())
+		gelfServer.Run()
+		log.Info("Got unexpected exit from Run method. Restarting...")
+		goto start
+	}()
 
 	server := events.NewEventsLoggingServer(log, repository)
 	pb.RegisterEventsLoggingServiceServer(s, server)
