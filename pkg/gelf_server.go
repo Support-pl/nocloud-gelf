@@ -6,6 +6,7 @@ import (
 	"github.com/Graylog2/go-gelf/gelf"
 	"github.com/slntopp/nocloud/pkg/nocloud"
 	"go.uber.org/zap"
+	"runtime/debug"
 )
 
 type GelfServer struct {
@@ -50,7 +51,7 @@ func (s *GelfServer) Run() int {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("Recovered from panic", zap.Any("error", err))
+			log.Error("Recovered from panic", zap.Any("error", err), zap.String("stack_trace", string(debug.Stack())))
 		}
 	}()
 
