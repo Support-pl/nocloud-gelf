@@ -64,6 +64,10 @@ ALTER TABLE EVENTS
 	return &SqliteRepository{DB: db, log: log}
 }
 
+func (r *SqliteRepository) CloseConnection() error {
+	return r.CloseConnection()
+}
+
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
 	log := r.log.Named("Create Event")
 

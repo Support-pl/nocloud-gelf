@@ -64,6 +64,11 @@ func main() {
 
 	log.Info("Setting up Sqlite Connection")
 	repository := events.NewSqliteRepository(log, sqliteHost)
+	defer func() {
+		if err := repository.CloseConnection(); err != nil {
+			log.Error("Failed to close sql connection on exit", zap.Error(err))
+		}
+	}()
 	log.Info("Sqlite connection established")
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
