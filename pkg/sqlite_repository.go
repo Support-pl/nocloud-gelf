@@ -7,11 +7,13 @@ import (
 	epb "github.com/slntopp/nocloud-proto/events_logging"
 	"go.uber.org/zap"
 	"strings"
+	"sync"
 )
 
 type SqliteRepository struct {
 	*sql.DB
 	log *zap.Logger
+	m   *sync.Mutex
 }
 
 func NewSqliteRepository(_log *zap.Logger, datasource string) *SqliteRepository {
@@ -61,7 +63,7 @@ ALTER TABLE EVENTS
 		}
 		log.Warn("Failed to exec query to add 'priority' column to table. Got duplicate error", zap.Error(err))
 	}
-	return &SqliteRepository{DB: db, log: log}
+	return &SqliteRepository{DB: db, log: log, m: &sync.Mutex{}}
 }
 
 func (r *SqliteRepository) CloseConnection() error {
@@ -69,6 +71,9 @@ func (r *SqliteRepository) CloseConnection() error {
 }
 
 func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortLogMessage) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	log := r.log.Named("Create Event")
 
 	insertEventQuery := fmt.Sprintf(`INSERT INTO EVENTS (ENTITY, UUID, SCOPE, ACTION, RC, REQUESTOR, TS, PRIORITY) VALUES ('%s', '%s', '%s', '%s', %d, '%s', %d, %d) RETURNING ID`,
@@ -110,6 +115,9 @@ func (r *SqliteRepository) CreateEvent(ctx context.Context, eventMessage *ShortL
 }
 
 func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequest) ([]*epb.Event, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	log := r.log.Named("GetEvents")
 
 	selectQuery := `SELECT E.ID, E.ENTITY, E.UUID, E.SCOPE, E.ACTION, E.RC, E.REQUESTOR, E.TS, S.ID, S.DIFF, E.PRIORITY FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
@@ -225,6 +233,9 @@ func (r *SqliteRepository) GetEvents(ctx context.Context, req *epb.GetEventsRequ
 }
 
 func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEventsCountRequest) (uint64, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	log := r.log.Named("GetEventsCount")
 
 	selectQuery := `SELECT COUNT(*) FROM EVENTS E LEFT OUTER JOIN SNAPSHOTS S on E.ID = S.EVENT_ID`
@@ -307,6 +318,9 @@ func (r *SqliteRepository) GetEventsCount(ctx context.Context, req *epb.GetEvent
 }
 
 func (r *SqliteRepository) GetUnique(ctx context.Context) (map[string]interface{}, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	log := r.log.Named("GetUnique")
 
 	selectQuery := `SELECT DISTINCT E.SCOPE FROM EVENTS E`
